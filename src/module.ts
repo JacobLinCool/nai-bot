@@ -40,9 +40,9 @@ export class NAI extends BaseModule implements Module {
                         if (data) {
                             data["nai-token"] = token;
                         }
-                        interaction.editReply("Authenticated");
+                        interaction.editReply(":white_check_mark: Successfully authenticated");
                     } catch (err) {
-                        interaction.editReply("Authentication failed");
+                        interaction.editReply(":x: Authentication failed");
                         return;
                     }
 
@@ -67,14 +67,17 @@ export class NAI extends BaseModule implements Module {
                     };
 
                     if (token) {
-                        interaction.reply({ ephemeral: true, content: "Generating ..." });
+                        interaction.reply({
+                            ephemeral: true,
+                            content: ":paintbrush: Generating ...",
+                        });
                         task.approved_by = interaction.user.id;
                         this.queue(token, task as Task);
                     } else {
                         await interaction.reply({
                             ephemeral: true,
                             content:
-                                "You are not authenticated, so the task is pending until one of the authorized users approves it.",
+                                "The task is pending in queue until one of the authorized users approves it.",
                         });
                         const task_id = Math.random().toString(36).slice(2);
                         this.tasks.set(task_id, task as Task);
@@ -88,7 +91,7 @@ export class NAI extends BaseModule implements Module {
 
                         await interaction.followUp({
                             content: [
-                                `A task is pending approval.`,
+                                `:yellow_circle: A task is pending for approval.`,
                                 `> Prompt: \`${task.prompt}\``,
                                 `> Negative Prompt: ${
                                     task.negative ? "`" + task.negative + "`" : "None"
@@ -113,15 +116,18 @@ export class NAI extends BaseModule implements Module {
                         task.approved_by = interaction.user.id;
                         this.queue(token, task);
                         this.tasks.delete(id);
-                        interaction.reply({ ephemeral: true, content: "Approved" });
+                        interaction.reply({
+                            ephemeral: true,
+                            content: ":white_check_mark: Approved",
+                        });
                     } else {
                         interaction.reply({
                             ephemeral: true,
-                            content: "You are not authenticated",
+                            content: ":x: You are not authenticated",
                         });
                     }
                 } else {
-                    interaction.reply("Task not found");
+                    interaction.reply(":x: Task not found");
                 }
             }
         } else {

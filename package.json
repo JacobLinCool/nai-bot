@@ -17,7 +17,7 @@
     "dependencies": {
         "discord.js": "^14.6.0",
         "dotenv": "^16.0.3",
-        "nai-studio": "^0.2.0",
+        "nai-studio": "^0.2.1",
         "pure-cat": "1.0.0-alpha.9",
         "pure-cat-module-i18n": "^1.0.0-alpha.9",
         "pure-cat-module-ignore": "1.0.0-alpha.9",
@@ -28,7 +28,7 @@
         "@types/node": "^18.11.3",
         "@typescript-eslint/eslint-plugin": "^5.40.1",
         "@typescript-eslint/parser": "^5.40.1",
-        "eslint": "^8.25.0",
+        "eslint": "^8.26.0",
         "eslint-config-prettier": "^8.5.0",
         "prettier": "^2.7.1",
         "tsup": "^6.3.0",

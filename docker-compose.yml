@@ -1,0 +1,15 @@
+version: "3.9"
+name: nai-bot
+
+services:
+  bot:
+    build:
+      context: .
+      target: nai-bot
+    image: jacoblincool/nai-bot
+    container_name: nai-bot
+    env_file:
+      - .env
+    volumes:
+      - ./.store:/app/.store
+    restart: unless-stopped

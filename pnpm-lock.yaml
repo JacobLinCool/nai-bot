@@ -8,7 +8,7 @@ specifiers:
   dotenv: ^16.0.3
   eslint: ^8.26.0
   eslint-config-prettier: ^8.5.0
-  nai-studio: ^0.2.1
+  nai-studio: ^0.2.2
   prettier: ^2.7.1
   pure-cat: 1.0.0-alpha.9
   pure-cat-module-i18n: ^1.0.0-alpha.9
@@ -22,7 +22,7 @@ specifiers:
 dependencies:
   discord.js: 14.6.0
   dotenv: 16.0.3
-  nai-studio: 0.2.1
+  nai-studio: 0.2.2
   pure-cat: 1.0.0-alpha.9
   pure-cat-module-i18n: 1.0.0-alpha.9
   pure-cat-module-ignore: 1.0.0-alpha.9
@@ -2204,8 +2204,8 @@ packages:
       thenify-all: 1.6.0
     dev: true
 
-  /nai-studio/0.2.1:
-    resolution: {integrity: sha512-LVRKjfIOuMGq//tCLlyAnXe4yMdsxVXMOdSgHEm+dUy8Uz2PBOwG1Sr0r9q9woNdUxVp64lSp65CRDrVB8Fl7g==}
+  /nai-studio/0.2.2:
+    resolution: {integrity: sha512-IA3638yhED40GeuSXGnxk5XD2vCXJB7GRRjJv8G5WW6QX8jViEZ2y/bHQuIFKHWYHz+6mVLW4bflAWDVQ+PbIQ==}
     hasBin: true
     dependencies:
       chalk: 4.1.2

@@ -4,7 +4,9 @@ import { REST, Routes, SlashCommandBuilder } from "discord.js";
 const commands = [
     new SlashCommandBuilder()
         .setName("auth")
-        .setDescription("Login into NovelAI")
+        .setDescription(
+            "Login into NovelAI (Email/password will not be stored, only a token will be stored)",
+        )
         .addStringOption((option) =>
             option.setName("email").setDescription("Your NovelAI email").setRequired(true),
         )

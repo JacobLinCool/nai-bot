@@ -67,18 +67,10 @@ export class NAI extends BaseModule implements Module {
                     };
 
                     if (token) {
-                        interaction.reply({
-                            ephemeral: true,
-                            content: ":paintbrush: Generating ...",
-                        });
+                        interaction.reply({ content: ":paintbrush: Generating ..." });
                         task.approved_by = interaction.user.id;
                         this.queue(token, task as Task);
                     } else {
-                        await interaction.reply({
-                            ephemeral: true,
-                            content:
-                                "The task is pending in queue until one of the authorized users approves it.",
-                        });
                         const task_id = Math.random().toString(36).slice(2);
                         this.tasks.set(task_id, task as Task);
 
@@ -89,7 +81,7 @@ export class NAI extends BaseModule implements Module {
                                 .setStyle(ButtonStyle.Primary),
                         );
 
-                        await interaction.followUp({
+                        await interaction.reply({
                             content: [
                                 `:yellow_circle: A task is pending for approval.`,
                                 `> Prompt: \`${task.prompt}\``,
@@ -99,6 +91,11 @@ export class NAI extends BaseModule implements Module {
                                 `> Shape: ${task.shape}`,
                             ].join("\n"),
                             components: [row],
+                        });
+                        await interaction.followUp({
+                            ephemeral: true,
+                            content:
+                                "The task is pending in queue until one of the authorized users approves it.",
                         });
                     }
 
@@ -127,7 +124,10 @@ export class NAI extends BaseModule implements Module {
                         });
                     }
                 } else {
-                    interaction.reply(":x: Task not found");
+                    interaction.reply({
+                        ephemeral: true,
+                        content: ":x: Task not found",
+                    });
                 }
             }
         } else {
@@ -171,10 +171,11 @@ export class NAI extends BaseModule implements Module {
                     files: [image],
                 };
 
-                if (Date.now() - task.interaction.createdTimestamp < 15 * 60 * 1000) {
-                    await task.interaction.followUp(message);
+                if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
+                    await task.interaction.editReply(message);
                 } else {
-                    await task.interaction.channel?.send(message);
+                    const reply = await task.interaction.fetchReply();
+                    await reply.reply(message);
                 }
 
                 queue.shift();

@@ -1,5 +1,5 @@
 import { BaseModule, CallNextModule, Module, StoreContext } from "pure-cat";
-import { NovelAI, resolution, sampler as SAMPLER } from "nai-studio";
+import { NovelAI, resolution, sampler as SAMPLER, model as MODEL } from "nai-studio";
 import {
     ClientEvents,
     ActionRowBuilder,
@@ -7,6 +7,7 @@ import {
     ButtonStyle,
     CommandInteraction,
     GatewayIntentBits,
+    TextChannel,
 } from "discord.js";
 import { random_prompt } from "./random";
 
@@ -64,6 +65,7 @@ export class NAI extends BaseModule implements Module {
                     const negative = interaction.options.getString("negative");
                     const shape = interaction.options.getString("shape");
                     const sampler = interaction.options.getString("sampler");
+                    const model = interaction.options.getString("model");
 
                     const data = await ctx.user<{ "nai-token": string }>();
                     const token = data?.["nai-token"];
@@ -78,6 +80,9 @@ export class NAI extends BaseModule implements Module {
                             (sampler || "") in SAMPLER
                                 ? (sampler as keyof typeof SAMPLER)
                                 : SAMPLER.k_euler_ancestral,
+                        model: Object.keys(MODEL).includes(model || "")
+                            ? (model as keyof typeof MODEL)
+                            : "safe",
                         issued_by: interaction.user.id,
                         interaction,
                     };
@@ -102,6 +107,7 @@ export class NAI extends BaseModule implements Module {
                             (sampler || "") in SAMPLER
                                 ? (sampler as keyof typeof SAMPLER)
                                 : SAMPLER.k_euler_ancestral,
+                        model: "safe",
                         issued_by: interaction.user.id,
                         interaction,
                     };
@@ -144,6 +150,21 @@ export class NAI extends BaseModule implements Module {
     }
 
     private async task(interaction: CommandInteraction, task: Task, token?: string): Promise<void> {
+        const chan = interaction.channel;
+        if (!chan) {
+            interaction.reply({ ephemeral: true, content: ":x: Channel not found" });
+            return;
+        }
+
+        if (task.model !== "safe" && (chan as TextChannel).nsfw === false) {
+            interaction.reply({
+                ephemeral: true,
+                content:
+                    ":x: This model may generate NSFW content, please use this command in a NSFW channel",
+            });
+            return;
+        }
+
         if (token) {
             interaction.reply({ content: ":paintbrush: Generating ..." });
             task.approved_by = interaction.user.id;
@@ -202,6 +223,7 @@ export class NAI extends BaseModule implements Module {
                 const image = await nai.image(task.prompt, task.negative, {
                     ...resolution.normal[task.shape],
                     sampler: task.sampler,
+                    model: MODEL[task.model],
                 });
 
                 const message = {
@@ -212,7 +234,10 @@ export class NAI extends BaseModule implements Module {
                         `Suggested by: <@${task.issued_by}>`,
                         `Approved by: <@${task.approved_by}>`,
                     ].join("\n"),
-                    files: [image],
+                    files:
+                        task.model === "safe" && !task.prompt.toLowerCase().includes("nsfw")
+                            ? [image]
+                            : [{ attachment: image, name: "SPOILER_IMAGE.png" }],
                 };
 
                 if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
@@ -245,6 +270,7 @@ interface Task {
     prompt: string;
     negative: string;
     shape: "portrait" | "landscape" | "square";
+    model: keyof typeof MODEL;
     sampler: typeof SAMPLER[keyof typeof SAMPLER];
     issued_by: string;
     approved_by?: string;

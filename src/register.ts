@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import { REST, Routes, SlashCommandBuilder } from "discord.js";
-import { sampler } from "nai-studio";
+import { sampler, model } from "nai-studio";
 
 const commands = [
     new SlashCommandBuilder()
@@ -45,6 +45,13 @@ const commands = [
                 .setName("sampler")
                 .setDescription("The sampler to use")
                 .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
+                .setRequired(false),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("model")
+                .setDescription("The model to use")
+                .addChoices(...Object.keys(model).map((name) => ({ name, value: name })))
                 .setRequired(false),
         ),
     new SlashCommandBuilder()

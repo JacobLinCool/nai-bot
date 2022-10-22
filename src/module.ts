@@ -250,6 +250,7 @@ export class NAI extends BaseModule implements Module {
                         task.model === "safe" && !task.prompt.toLowerCase().includes("nsfw")
                             ? [image]
                             : [{ attachment: image, name: "SPOILER_IMAGE.png" }],
+                    components: [],
                 };
 
                 if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {

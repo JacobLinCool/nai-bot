@@ -72,6 +72,7 @@ export class NAI extends BaseModule implements Module {
                     const shape = interaction.options.getString("shape");
                     const sampler = interaction.options.getString("sampler");
                     const model = interaction.options.getString("model");
+                    const cfg = interaction.options.getNumber("cfg") || 11;
 
                     const data = await ctx.user<{ "nai-token": string }>();
                     const token = data?.["nai-token"];
@@ -89,6 +90,7 @@ export class NAI extends BaseModule implements Module {
                         model: Object.keys(MODEL).includes(model || "")
                             ? (model as keyof typeof MODEL)
                             : "safe",
+                        cfg: cfg >= 1.1 && cfg <= 100 ? cfg : 11,
                         issued_by: interaction.user.id,
                         interaction,
                     };
@@ -114,6 +116,7 @@ export class NAI extends BaseModule implements Module {
                                 ? (sampler as keyof typeof SAMPLER)
                                 : SAMPLER.k_euler_ancestral,
                         model: "safe",
+                        cfg: 11,
                         issued_by: interaction.user.id,
                         interaction,
                     };
@@ -191,7 +194,7 @@ export class NAI extends BaseModule implements Module {
                     `:yellow_circle: A task is pending for approval.`,
                     `> Prompt: \`${task.prompt}\``,
                     `> Negative Prompt: ${task.negative ? "`" + task.negative + "`" : "None"}`,
-                    `> Shape: ${task.shape}`,
+                    `> Shape: ${task.shape} | Sampler: ${task.sampler} | Model: ${task.model} | CFG: ${task.cfg}`,
                 ].join("\n"),
                 components: [row],
             });
@@ -230,13 +233,16 @@ export class NAI extends BaseModule implements Module {
                     ...resolution.normal[task.shape],
                     sampler: task.sampler,
                     model: MODEL[task.model],
+                    scale: task.cfg,
                 });
 
                 const message = {
                     content: [
-                        `> Prompt: \`${task.prompt}\``,
-                        `> Negative Prompt: ${task.negative ? "`" + task.negative + "`" : "None"}`,
-                        `> Shape: ${task.shape}`,
+                        `> Prompt: \`${task.prompt.replace(/[`\\]/g, "")}\``,
+                        `> Negative Prompt: ${
+                            task.negative ? "`" + task.negative.replace(/[`\\]/g, "") + "`" : "None"
+                        }`,
+                        `> Shape: \`${task.shape}\` | Sampler: \`${task.sampler}\` | Model: \`${task.model}\` | CFG: \`${task.cfg}\``,
                         `Suggested by: <@${task.issued_by}>`,
                         `Approved by: <@${task.approved_by}>`,
                     ].join("\n"),
@@ -278,6 +284,7 @@ interface Task {
     shape: "portrait" | "landscape" | "square";
     model: keyof typeof MODEL;
     sampler: typeof SAMPLER[keyof typeof SAMPLER];
+    cfg: number;
     issued_by: string;
     approved_by?: string;
     interaction: CommandInteraction;

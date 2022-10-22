@@ -32,7 +32,7 @@ const commands = [
         .addStringOption((option) =>
             option
                 .setName("shape")
-                .setDescription("The shape of the image")
+                .setDescription('The shape of the image, default is "portrait"')
                 .addChoices(
                     { name: "Portrait", value: "portrait" },
                     { name: "Landscape", value: "landscape" },
@@ -43,15 +43,21 @@ const commands = [
         .addStringOption((option) =>
             option
                 .setName("sampler")
-                .setDescription("The sampler to use")
+                .setDescription('The sampler to use, default is "k_euler_ancestral"')
                 .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
                 .setRequired(false),
         )
         .addStringOption((option) =>
             option
                 .setName("model")
-                .setDescription("The model to use")
+                .setDescription('The model to use, default is "safe"')
                 .addChoices(...Object.keys(model).map((name) => ({ name, value: name })))
+                .setRequired(false),
+        )
+        .addNumberOption((option) =>
+            option
+                .setName("cfg")
+                .setDescription("The CFG scale value to use (1.1 ~ 100), default is 11")
                 .setRequired(false),
         ),
     new SlashCommandBuilder()

@@ -1,5 +1,5 @@
 import { BaseModule, CallNextModule, Module, StoreContext } from "pure-cat";
-import { NovelAI, resolution } from "nai-studio";
+import { NovelAI, resolution, sampler as SAMPLER } from "nai-studio";
 import {
     ClientEvents,
     ActionRowBuilder,
@@ -52,6 +52,7 @@ export class NAI extends BaseModule implements Module {
                     const prompt = interaction.options.getString("prompt", true);
                     const negative = interaction.options.getString("negative");
                     const shape = interaction.options.getString("shape");
+                    const sampler = interaction.options.getString("sampler");
 
                     const data = await ctx.user<{ "nai-token": string }>();
                     const token = data?.["nai-token"];
@@ -62,6 +63,10 @@ export class NAI extends BaseModule implements Module {
                         shape: ["portrait", "landscape", "square"].includes(shape || "")
                             ? (shape as "portrait" | "landscape" | "square")
                             : "portrait",
+                        sampler:
+                            (sampler || "") in SAMPLER
+                                ? (sampler as keyof typeof SAMPLER)
+                                : SAMPLER.k_euler_ancestral,
                         issued_by: interaction.user.id,
                         interaction,
                     };
@@ -158,6 +163,7 @@ export class NAI extends BaseModule implements Module {
 
                 const image = await nai.image(task.prompt, task.negative, {
                     ...resolution.normal[task.shape],
+                    sampler: task.sampler,
                 });
 
                 const message = {
@@ -193,6 +199,7 @@ interface Task {
     prompt: string;
     negative: string;
     shape: "portrait" | "landscape" | "square";
+    sampler: typeof SAMPLER[keyof typeof SAMPLER];
     issued_by: string;
     approved_by?: string;
     interaction: CommandInteraction;

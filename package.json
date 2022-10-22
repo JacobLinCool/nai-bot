@@ -17,7 +17,7 @@
     "dependencies": {
         "discord.js": "^14.6.0",
         "dotenv": "^16.0.3",
-        "nai-studio": "^0.2.2",
+        "nai-studio": "^0.2.3",
         "pure-cat": "1.0.0-alpha.9",
         "pure-cat-module-i18n": "^1.0.0-alpha.9",
         "pure-cat-module-ignore": "1.0.0-alpha.9",

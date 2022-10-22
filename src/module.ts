@@ -53,10 +53,16 @@ export class NAI extends BaseModule implements Module {
                 case "revoke": {
                     const data = await ctx.user<{ "nai-token"?: string }>();
                     if (data && data["nai-token"]) {
-                        delete data["nai-token"];
-                        interaction.reply(":white_check_mark: Successfully revoked your token");
+                        data["nai-token"] = undefined;
+                        interaction.reply({
+                            ephemeral: true,
+                            content: ":white_check_mark: Successfully revoked your token",
+                        });
                     } else {
-                        interaction.reply(":x: You have not authorized");
+                        interaction.reply({
+                            ephemeral: true,
+                            content: ":x: You have not authorized",
+                        });
                     }
                     break;
                 }

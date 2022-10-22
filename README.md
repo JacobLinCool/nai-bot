@@ -24,7 +24,11 @@ The bot will smartly queue up your requests and will not spam the API.
 
 `/auth <email> <password>`: Authenticate the bot with your NovelAI account.
 
-`/generate <prompt> [negative] [shape]`: Generate an image from the prompt.
+`/revoke`: Revoke the previous authentication token.
+
+`/generate <prompt> [negative] [shape] [smapler] [model]`: Generate an image from the prompt.
+
+`/random [shape] [smapler] [model]`: Generate a random image.
 
 ## Screenshots
 

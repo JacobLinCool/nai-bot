@@ -177,6 +177,7 @@ export class NAI extends BaseModule implements Module {
     }
 
     private async draw(token: string): Promise<void> {
+        let interaction: CommandInteraction | undefined;
         try {
             const queue = this.queues.get(token);
             if (!queue) {
@@ -186,6 +187,7 @@ export class NAI extends BaseModule implements Module {
             const task = queue[0];
             if (task) {
                 const nai = new NovelAI(token);
+                interaction = task.interaction;
 
                 const image = await nai.image(task.prompt, task.negative, {
                     ...resolution.normal[task.shape],
@@ -217,6 +219,14 @@ export class NAI extends BaseModule implements Module {
             }
         } catch (err) {
             console.log(err);
+            if (err instanceof Error && interaction) {
+                if (Date.now() - interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
+                    await interaction.editReply(":x: " + err.message);
+                } else {
+                    const reply = await interaction.fetchReply();
+                    await reply.reply(":x: " + err.message);
+                }
+            }
         }
     }
 }

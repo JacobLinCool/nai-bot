@@ -49,6 +49,16 @@ export class NAI extends BaseModule implements Module {
 
                     break;
                 }
+                case "revoke": {
+                    const data = await ctx.user<{ "nai-token"?: string }>();
+                    if (data && data["nai-token"]) {
+                        delete data["nai-token"];
+                        interaction.reply(":white_check_mark: Successfully revoked your token");
+                    } else {
+                        interaction.reply(":x: You have not authorized");
+                    }
+                    break;
+                }
                 case "generate": {
                     const prompt = interaction.options.getString("prompt", true);
                     const negative = interaction.options.getString("negative");

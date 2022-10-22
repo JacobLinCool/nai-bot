@@ -15,6 +15,9 @@ const commands = [
             option.setName("password").setDescription("Your NovelAI password").setRequired(true),
         ),
     new SlashCommandBuilder()
+        .setName("revoke")
+        .setDescription("Revoke the previously stored token"),
+    new SlashCommandBuilder()
         .setName("generate")
         .setDescription("Generate an image")
         .addStringOption((option) =>

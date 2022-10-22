@@ -8,6 +8,7 @@ import {
     CommandInteraction,
     GatewayIntentBits,
 } from "discord.js";
+import { random_prompt } from "./random";
 
 async function get_token(email: string, password: string): Promise<string> {
     const nai = new NovelAI();
@@ -71,39 +72,31 @@ export class NAI extends BaseModule implements Module {
                         interaction,
                     };
 
-                    if (token) {
-                        interaction.reply({ content: ":paintbrush: Generating ..." });
-                        task.approved_by = interaction.user.id;
-                        this.queue(token, task as Task);
-                    } else {
-                        const task_id = Math.random().toString(36).slice(2);
-                        this.tasks.set(task_id, task as Task);
+                    this.task(interaction, task as Task, token);
+                    break;
+                }
+                case "random": {
+                    const shape = interaction.options.getString("shape");
+                    const sampler = interaction.options.getString("sampler");
 
-                        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(`approve::${task_id}`)
-                                .setLabel("Approve")
-                                .setStyle(ButtonStyle.Primary),
-                        );
+                    const data = await ctx.user<{ "nai-token": string }>();
+                    const token = data?.["nai-token"];
 
-                        await interaction.reply({
-                            content: [
-                                `:yellow_circle: A task is pending for approval.`,
-                                `> Prompt: \`${task.prompt}\``,
-                                `> Negative Prompt: ${
-                                    task.negative ? "`" + task.negative + "`" : "None"
-                                }`,
-                                `> Shape: ${task.shape}`,
-                            ].join("\n"),
-                            components: [row],
-                        });
-                        await interaction.followUp({
-                            ephemeral: true,
-                            content:
-                                "The task is pending in queue until one of the authorized users approves it.",
-                        });
-                    }
+                    const task: Partial<Task> = {
+                        prompt: random_prompt(),
+                        negative: "nsfw",
+                        shape: ["portrait", "landscape", "square"].includes(shape || "")
+                            ? (shape as "portrait" | "landscape" | "square")
+                            : "portrait",
+                        sampler:
+                            (sampler || "") in SAMPLER
+                                ? (sampler as keyof typeof SAMPLER)
+                                : SAMPLER.k_euler_ancestral,
+                        issued_by: interaction.user.id,
+                        interaction,
+                    };
 
+                    this.task(interaction, task as Task, token);
                     break;
                 }
             }
@@ -137,6 +130,39 @@ export class NAI extends BaseModule implements Module {
             }
         } else {
             await next();
+        }
+    }
+
+    private async task(interaction: CommandInteraction, task: Task, token?: string): Promise<void> {
+        if (token) {
+            interaction.reply({ content: ":paintbrush: Generating ..." });
+            task.approved_by = interaction.user.id;
+            this.queue(token, task as Task);
+        } else {
+            const task_id = Math.random().toString(36).slice(2);
+            this.tasks.set(task_id, task as Task);
+
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`approve::${task_id}`)
+                    .setLabel("Approve")
+                    .setStyle(ButtonStyle.Primary),
+            );
+
+            await interaction.reply({
+                content: [
+                    `:yellow_circle: A task is pending for approval.`,
+                    `> Prompt: \`${task.prompt}\``,
+                    `> Negative Prompt: ${task.negative ? "`" + task.negative + "`" : "None"}`,
+                    `> Shape: ${task.shape}`,
+                ].join("\n"),
+                components: [row],
+            });
+            await interaction.followUp({
+                ephemeral: true,
+                content:
+                    "The task is pending in queue until one of the authorized users approves it.",
+            });
         }
     }
 

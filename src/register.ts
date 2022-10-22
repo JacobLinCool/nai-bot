@@ -44,6 +44,27 @@ const commands = [
                 .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
                 .setRequired(false),
         ),
+    new SlashCommandBuilder()
+        .setName("random")
+        .setDescription("Generate a random image")
+        .addStringOption((option) =>
+            option
+                .setName("shape")
+                .setDescription("The shape of the image")
+                .addChoices(
+                    { name: "Portrait", value: "portrait" },
+                    { name: "Landscape", value: "landscape" },
+                    { name: "Square", value: "square" },
+                )
+                .setRequired(false),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("sampler")
+                .setDescription("The sampler to use")
+                .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
+                .setRequired(false),
+        ),
 ].map((command) => command.toJSON());
 
 config();

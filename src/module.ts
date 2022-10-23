@@ -74,6 +74,7 @@ export class NAI extends BaseModule implements Module {
                     const model = interaction.options.getString("model");
                     const cfg = interaction.options.getNumber("cfg") || 11;
                     const steps = interaction.options.getInteger("steps") || 28;
+                    const batch = interaction.options.getInteger("batch") || 1;
 
                     const data = await ctx.user<{ "nai-token": string }>();
                     const token = data?.["nai-token"];
@@ -96,6 +97,7 @@ export class NAI extends BaseModule implements Module {
                         seed: Math.floor(Math.random() * 2147483648),
                         issued_by: interaction.user.id,
                         interaction,
+                        batch: batch >= 1 && batch <= 4 ? batch : 1,
                     };
 
                     this.task(interaction, task, token);
@@ -124,6 +126,7 @@ export class NAI extends BaseModule implements Module {
                         seed: Math.floor(Math.random() * 2147483648),
                         issued_by: interaction.user.id,
                         interaction,
+                        batch: 1,
                     };
 
                     this.task(interaction, task, token);
@@ -234,14 +237,21 @@ export class NAI extends BaseModule implements Module {
                 const nai = new NovelAI(token);
                 interaction = task.interaction;
 
-                const image = await nai.image(task.prompt, task.negative, {
-                    ...resolution.normal[task.shape],
-                    sampler: task.sampler,
-                    model: MODEL[task.model],
-                    scale: task.cfg,
-                    steps: task.steps,
-                    seed: task.seed,
-                });
+                const images: Buffer[] = [];
+                for (let i = 0; i < task.batch; i++) {
+                    const image = await nai.image(task.prompt, task.negative, {
+                        ...resolution.normal[task.shape],
+                        sampler: task.sampler,
+                        model: MODEL[task.model],
+                        scale: task.cfg,
+                        steps: task.steps,
+                        seed: (task.seed + i) % 2147483648,
+                    });
+                    images.push(image);
+                    await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
+                }
+
+                const nsfw = task.model !== "safe" || task.prompt.toLowerCase().includes("nsfw");
 
                 const message = {
                     content: [
@@ -253,10 +263,10 @@ export class NAI extends BaseModule implements Module {
                         `Suggested by: <@${task.issued_by}>`,
                         `Approved by: <@${task.approved_by}>`,
                     ].join("\n"),
-                    files:
-                        task.model === "safe" && !task.prompt.toLowerCase().includes("nsfw")
-                            ? [{ attachment: image, name: "image.png" }]
-                            : [{ attachment: image, name: "SPOILER_IMAGE.png" }],
+                    files: images.map((image, i) => ({
+                        attachment: image,
+                        name: `${nsfw ? "SPOILER_" : ""}${task.seed + i}.png`,
+                    })),
                     components: [],
                 };
 
@@ -298,4 +308,5 @@ interface Task {
     issued_by: string;
     approved_by?: string;
     interaction: CommandInteraction;
+    batch: number;
 }

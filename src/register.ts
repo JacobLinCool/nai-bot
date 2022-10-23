@@ -65,6 +65,12 @@ const commands = [
                 .setName("steps")
                 .setDescription("The number of steps to use (1 ~ 28), default is 28")
                 .setRequired(false),
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("batch")
+                .setDescription("How many images to generate at once (1 ~ 4), default is 1")
+                .setRequired(false),
         ),
     new SlashCommandBuilder()
         .setName("random")

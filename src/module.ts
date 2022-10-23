@@ -391,7 +391,7 @@ export class NAI extends BaseModule implements Module {
                         ].join("\n"),
                         files: images.map((image, i) => ({
                             attachment: image,
-                            name: `${nsfw ? "SPOILER_" : ""}${task.images[0].seed}.png`,
+                            name: `${nsfw ? "SPOILER_" : ""}${task.images[i].seed}.png`,
                         })),
                         components: [],
                     };

@@ -227,71 +227,81 @@ export class NAI extends BaseModule implements Module {
 
     private async draw(token: string): Promise<void> {
         let interaction: CommandInteraction | undefined;
-        try {
-            const queue = this.queues.get(token);
-            if (!queue) {
-                return;
-            }
 
-            const task = queue[0];
-            if (task) {
-                const nai = new NovelAI(token);
-                interaction = task.interaction;
-
-                const images: Buffer[] = [];
-                for (let i = 0; i < task.batch; i++) {
-                    const image = await nai.image(task.prompt, task.negative, {
-                        ...resolution.normal[task.shape],
-                        sampler: task.sampler,
-                        model: MODEL[task.model],
-                        scale: task.cfg,
-                        steps: task.steps,
-                        seed: (task.seed + i) % 2147483648,
-                    });
-                    images.push(image);
-                    await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
+        let retried_count = 0;
+        while (retried_count < 3) {
+            try {
+                const queue = this.queues.get(token);
+                if (!queue) {
+                    return;
                 }
 
-                const nsfw = task.model !== "safe" || task.prompt.toLowerCase().includes("nsfw");
+                const task = queue[0];
+                if (task) {
+                    const nai = new NovelAI(token);
+                    interaction = task.interaction;
 
-                const message = {
-                    content: [
-                        `> **Prompt**: \`${task.prompt.replace(/[`\\]/g, "")}\``,
-                        `> **Negative Prompt**: ${
-                            task.negative ? "`" + task.negative.replace(/[`\\]/g, "") + "`" : "None"
-                        }`,
-                        `> \`${task.seed}\` | **${task.model}** model, **${task.sampler}** sampler, **${task.steps}** steps, **${task.cfg}** scale`,
-                        `Suggested by: <@${task.issued_by}>`,
-                        `Approved by: <@${task.approved_by}>`,
-                    ].join("\n"),
-                    files: images.map((image, i) => ({
-                        attachment: image,
-                        name: `${nsfw ? "SPOILER_" : ""}${task.seed + i}.png`,
-                    })),
-                    components: [],
-                };
+                    const images: Buffer[] = [];
+                    for (let i = 0; i < task.batch; i++) {
+                        const image = await nai.image(task.prompt, task.negative, {
+                            ...resolution.normal[task.shape],
+                            sampler: task.sampler,
+                            model: MODEL[task.model],
+                            scale: task.cfg,
+                            steps: task.steps,
+                            seed: (task.seed + i) % 2147483648,
+                        });
+                        images.push(image);
+                        await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
+                    }
 
-                if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
-                    await task.interaction.editReply(message);
-                } else if (task.reply) {
-                    const reply = await task.interaction.channel?.messages.fetch(task.reply.id);
-                    await reply?.reply(message);
+                    const nsfw =
+                        task.model !== "safe" || task.prompt.toLowerCase().includes("nsfw");
+
+                    const message = {
+                        content: [
+                            `> **Prompt**: \`${task.prompt.replace(/[`\\]/g, "")}\``,
+                            `> **Negative Prompt**: ${
+                                task.negative
+                                    ? "`" + task.negative.replace(/[`\\]/g, "") + "`"
+                                    : "None"
+                            }`,
+                            `> \`${task.seed}\` | **${task.model}** model, **${task.sampler}** sampler, **${task.steps}** steps, **${task.cfg}** scale`,
+                            `Suggested by: <@${task.issued_by}>`,
+                            `Approved by: <@${task.approved_by}>`,
+                        ].join("\n"),
+                        files: images.map((image, i) => ({
+                            attachment: image,
+                            name: `${nsfw ? "SPOILER_" : ""}${task.seed + i}.png`,
+                        })),
+                        components: [],
+                    };
+
+                    if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
+                        await task.interaction.editReply(message);
+                    } else if (task.reply) {
+                        const reply = await task.interaction.channel?.messages.fetch(task.reply.id);
+                        await reply?.reply(message);
+                    } else {
+                        await task.interaction.channel?.send(message);
+                    }
+
+                    queue.shift();
+                    if (queue.length) {
+                        this.draw(token);
+                    }
+                }
+            } catch (err) {
+                console.log(err);
+                ++retried_count;
+                if (retried_count === 3 && err instanceof Error && interaction) {
+                    if (Date.now() - interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
+                        await interaction.editReply(":x: " + err.message);
+                    } else {
+                        await interaction.channel?.send(":x: " + err.message);
+                    }
                 } else {
-                    await task.interaction.channel?.send(message);
-                }
-
-                queue.shift();
-                if (queue.length) {
-                    this.draw(token);
-                }
-            }
-        } catch (err) {
-            console.log(err);
-            if (err instanceof Error && interaction) {
-                if (Date.now() - interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
-                    await interaction.editReply(":x: " + err.message);
-                } else {
-                    await interaction.channel?.send(":x: " + err.message);
+                    await new Promise((resolve) => setTimeout(resolve, 2000 * retried_count));
                 }
             }
         }

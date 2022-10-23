@@ -48,8 +48,7 @@ The bot will smartly queue up your requests and will not spam the API.
 
 `/series` command can be usefull to generate a series of images from the prompt by only changing one of the parameters.
 
-![Series: Samplers](screenshots/series_samplers.png)
+| Samplers                                             | CFG Scales                                       | Steps                                          |
+| ---------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------- |
+| ![Series: Samplers](screenshots/series_samplers.png) | ![Series: Scales](screenshots/series_scales.png) | ![Series: Steps](screenshots/series_steps.png) |
 
-![Series: Scales](screenshots/series_scales.png)
-
-![Series: Steps](screenshots/series_steps.png)

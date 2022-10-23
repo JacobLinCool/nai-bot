@@ -10,6 +10,8 @@ A NovelAI bot with prompt suggestions supprt for friends.
 
 The bot will smartly queue up your requests and will not spam the API.
 
+> Notice: After you authorize the bot, the bot will generate images in `Normal` size on your behavior only when you **use a command** or **approve a prompt**, which means **it will consume your Anlas** if you are not in Opus subscription.
+
 ### If You are a Subscriber
 
 - [x] Auth the bot with your NovelAI account (Store token in the bot)
@@ -41,3 +43,13 @@ The bot will smartly queue up your requests and will not spam the API.
 ![A subscriber](screenshots/a-subscriber.png)
 
 > If you are a subscriber, you can directly generate images from the prompt.
+
+### Series
+
+`/series` command can be usefull to generate a series of images from the prompt by only changing one of the parameters.
+
+![Series: Samplers](screenshots/series_samplers.png)
+
+![Series: Scales](screenshots/series_scales.png)
+
+![Series: Steps](screenshots/series_steps.png)

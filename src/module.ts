@@ -69,20 +69,106 @@ export class NAI extends BaseModule implements Module {
                 }
                 case "generate": {
                     const prompt = interaction.options.getString("prompt", true);
-                    const negative = interaction.options.getString("negative");
+                    const negative = interaction.options.getString("negative") || "";
+                    const shape = interaction.options.getString("shape");
+                    const sampler = interaction.options.getString("sampler");
+                    const model = interaction.options.getString("model");
+                    let cfg = interaction.options.getNumber("cfg") || 11;
+                    cfg = cfg >= 1.1 && cfg <= 100 ? cfg : 11;
+                    let steps = interaction.options.getInteger("steps") || 28;
+                    steps = steps >= 1 && steps <= 28 ? steps : 28;
+                    let batch = interaction.options.getInteger("batch") || 1;
+                    batch = batch >= 1 && batch <= 4 ? batch : 1;
+
+                    const data = await ctx.user<{ "nai-token": string }>();
+                    const token = data?.["nai-token"];
+
+                    const images: Image[] = [];
+
+                    const seed = Math.floor(Math.random() * 2147483648);
+                    for (let i = 0; i < batch; i++) {
+                        images.push({
+                            prompt,
+                            negative,
+                            shape: ["portrait", "landscape", "square"].includes(shape || "")
+                                ? (shape as "portrait" | "landscape" | "square")
+                                : "portrait",
+                            sampler:
+                                (sampler || "") in SAMPLER
+                                    ? (sampler as keyof typeof SAMPLER)
+                                    : SAMPLER.k_euler_ancestral,
+                            model: Object.keys(MODEL).includes(model || "")
+                                ? (model as keyof typeof MODEL)
+                                : "safe",
+                            cfg,
+                            steps,
+                            seed: (seed + i) % 2147483648,
+                        });
+                    }
+
+                    const task = {
+                        images,
+                        issued_by: interaction.user.id,
+                        interaction,
+                    };
+
+                    this.task(interaction, task, token);
+                    break;
+                }
+                case "random": {
+                    const shape = interaction.options.getString("shape");
+                    const sampler = interaction.options.getString("sampler");
+
+                    const data = await ctx.user<{ "nai-token": string }>();
+                    const token = data?.["nai-token"];
+
+                    const images: Image[] = [
+                        {
+                            prompt: random_prompt(),
+                            negative: "nsfw",
+                            shape: ["portrait", "landscape", "square"].includes(shape || "")
+                                ? (shape as "portrait" | "landscape" | "square")
+                                : "portrait",
+                            sampler:
+                                (sampler || "") in SAMPLER
+                                    ? (sampler as keyof typeof SAMPLER)
+                                    : SAMPLER.k_euler_ancestral,
+                            model: "safe" as const,
+                            cfg: 11,
+                            steps: 28,
+                            seed: Math.floor(Math.random() * 2147483648),
+                        },
+                    ];
+
+                    const task = {
+                        images,
+                        issued_by: interaction.user.id,
+                        interaction,
+                    };
+
+                    this.task(interaction, task, token);
+                    break;
+                }
+                case "series": {
+                    const prompt = interaction.options.getString("prompt", true);
+                    const negative = interaction.options.getString("negative") || "";
                     const shape = interaction.options.getString("shape");
                     const sampler = interaction.options.getString("sampler");
                     const model = interaction.options.getString("model");
                     const cfg = interaction.options.getNumber("cfg") || 11;
                     const steps = interaction.options.getInteger("steps") || 28;
-                    const batch = interaction.options.getInteger("batch") || 1;
+                    let type = interaction.options.getString("type");
+
+                    type = ["shape", "sampler", "cfg", "steps"].includes(type || "")
+                        ? type
+                        : "shape";
 
                     const data = await ctx.user<{ "nai-token": string }>();
                     const token = data?.["nai-token"];
 
-                    const task = {
+                    const base = {
                         prompt,
-                        negative: negative || "",
+                        negative,
                         shape: ["portrait", "landscape", "square"].includes(shape || "")
                             ? (shape as "portrait" | "landscape" | "square")
                             : "portrait",
@@ -96,41 +182,31 @@ export class NAI extends BaseModule implements Module {
                         cfg: cfg >= 1.1 && cfg <= 100 ? cfg : 11,
                         steps: steps >= 1 && steps <= 28 ? steps : 28,
                         seed: Math.floor(Math.random() * 2147483648),
-                        issued_by: interaction.user.id,
-                        interaction,
-                        batch: batch >= 1 && batch <= 4 ? batch : 1,
                     };
 
-                    this.task(interaction, task, token);
-                    break;
-                }
-                case "random": {
-                    const shape = interaction.options.getString("shape");
-                    const sampler = interaction.options.getString("sampler");
+                    const images: Image[] = [];
+                    if (type === "shape") {
+                        const shapes = ["portrait", "landscape", "square"] as const;
+                        for (const shape of shapes) {
+                            images.push({ ...base, shape });
+                        }
+                    } else if (type === "sampler") {
+                        const samplers = Object.keys(SAMPLER) as (keyof typeof SAMPLER)[];
+                        for (const sampler of samplers) {
+                            images.push({ ...base, sampler });
+                        }
+                    } else if (type === "cfg") {
+                        for (let cfg = 2; cfg <= 20; cfg += 2) {
+                            images.push({ ...base, cfg });
+                        }
+                    } else if (type === "steps") {
+                        for (let steps = 4; steps <= 28; steps += 4) {
+                            images.push({ ...base, steps });
+                        }
+                    }
 
-                    const data = await ctx.user<{ "nai-token": string }>();
-                    const token = data?.["nai-token"];
-
-                    const task = {
-                        prompt: random_prompt(),
-                        negative: "nsfw",
-                        shape: ["portrait", "landscape", "square"].includes(shape || "")
-                            ? (shape as "portrait" | "landscape" | "square")
-                            : "portrait",
-                        sampler:
-                            (sampler || "") in SAMPLER
-                                ? (sampler as keyof typeof SAMPLER)
-                                : SAMPLER.k_euler_ancestral,
-                        model: "safe" as const,
-                        cfg: 11,
-                        steps: 28,
-                        seed: Math.floor(Math.random() * 2147483648),
-                        issued_by: interaction.user.id,
-                        interaction,
-                        batch: 1,
-                    };
-
-                    this.task(interaction, task, token);
+                    const task = { issued_by: interaction.user.id, interaction };
+                    this.task(interaction, { ...task, images }, token);
                     break;
                 }
             }
@@ -149,6 +225,14 @@ export class NAI extends BaseModule implements Module {
                             ephemeral: true,
                             content: ":white_check_mark: Approved",
                         });
+                        if (
+                            Date.now() - task.interaction.createdTimestamp <
+                            (14 * 60 + 30) * 1000
+                        ) {
+                            task.interaction.editReply({
+                                content: `:white_check_mark: Approved by <@${interaction.user.id}>, :paintbrush: Generating ...`,
+                            });
+                        }
                     } else {
                         interaction.reply({
                             ephemeral: true,
@@ -169,12 +253,16 @@ export class NAI extends BaseModule implements Module {
 
     private async task(interaction: CommandInteraction, task: Task, token?: string): Promise<void> {
         const chan = interaction.channel;
-        if (!chan) {
+        if (!chan && !(interaction.replied || interaction.deferred)) {
             interaction.reply({ ephemeral: true, content: ":x: Channel not found" });
             return;
         }
 
-        if (task.model !== "safe" && (chan as TextChannel).nsfw === false) {
+        if (
+            task.images[0].model !== "safe" &&
+            (chan as TextChannel).nsfw === false &&
+            !(interaction.replied || interaction.deferred)
+        ) {
             interaction.reply({
                 ephemeral: true,
                 content:
@@ -184,7 +272,9 @@ export class NAI extends BaseModule implements Module {
         }
 
         if (token) {
-            interaction.reply({ content: ":paintbrush: Generating ..." });
+            if (!(interaction.replied || interaction.deferred)) {
+                await interaction.reply({ content: ":paintbrush: Generating ..." });
+            }
             task.approved_by = interaction.user.id;
             this.queue(token, task);
         } else {
@@ -198,20 +288,32 @@ export class NAI extends BaseModule implements Module {
                     .setStyle(ButtonStyle.Primary),
             );
 
-            task.reply = await interaction.reply({
-                content: [
-                    `:yellow_circle: A task is pending for approval.`,
-                    `> **Prompt**: \`${task.prompt}\``,
-                    `> **Negative Prompt**: ${task.negative ? "`" + task.negative + "`" : "None"}`,
-                    `> **${task.model}** model, **${task.sampler}** sampler, **${task.steps}** steps, **${task.cfg}** scale`,
-                ].join("\n"),
-                components: [row],
-            });
-            await interaction.followUp({
-                ephemeral: true,
-                content:
-                    "The task is pending in queue until one of the authorized users approves it.",
-            });
+            if (!(interaction.replied || interaction.deferred)) {
+                const seeds = [...new Set(task.images.map((image) => image.seed))].join("`, `");
+                const models = [...new Set(task.images.map((image) => image.model))].join("**, **");
+                const samplers = [...new Set(task.images.map((image) => image.sampler))].join(
+                    "**, **",
+                );
+                const steps = [...new Set(task.images.map((image) => image.steps))].join("**, **");
+                const cfgs = [...new Set(task.images.map((image) => image.cfg))].join("**, **");
+
+                task.reply = await interaction.reply({
+                    content: [
+                        `:yellow_circle: A task is pending for approval.`,
+                        `> **Prompt**: \`${task.images[0].prompt}\``,
+                        `> **Negative Prompt**: ${
+                            task.images[0].negative ? "`" + task.images[0].negative + "`" : "None"
+                        }`,
+                        `> \`${seeds}\` | **${models}** model, **${samplers}** sampler, **${steps}** steps, **${cfgs}** scale`,
+                    ].join("\n"),
+                    components: [row],
+                });
+                await interaction.followUp({
+                    ephemeral: true,
+                    content:
+                        "The task is pending in queue until one of the authorized users approves it.",
+                });
+            }
         }
     }
 
@@ -242,37 +344,54 @@ export class NAI extends BaseModule implements Module {
                     interaction = task.interaction;
 
                     const images: Buffer[] = [];
-                    for (let i = 0; i < task.batch; i++) {
-                        const image = await nai.image(task.prompt, task.negative, {
-                            ...resolution.normal[task.shape],
-                            sampler: task.sampler,
-                            model: MODEL[task.model],
-                            scale: task.cfg,
-                            steps: task.steps,
-                            seed: (task.seed + i) % 2147483648,
-                        });
+                    for (let i = 0; i < task.images.length; i++) {
+                        const image = await nai.image(
+                            task.images[i].prompt,
+                            task.images[i].negative,
+                            {
+                                ...resolution.normal[task.images[i].shape],
+                                sampler: task.images[i].sampler,
+                                model: MODEL[task.images[i].model],
+                                scale: task.images[i].cfg,
+                                steps: task.images[i].steps,
+                                seed: task.images[i].seed,
+                            },
+                        );
                         images.push(image);
                         await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
                     }
 
                     const nsfw =
-                        task.model !== "safe" || task.prompt.toLowerCase().includes("nsfw");
+                        task.images[0].model !== "safe" ||
+                        task.images[0].prompt.toLowerCase().includes("nsfw");
+
+                    const seeds = [...new Set(task.images.map((image) => image.seed))].join("`, `");
+                    const models = [...new Set(task.images.map((image) => image.model))].join(
+                        "**, **",
+                    );
+                    const samplers = [...new Set(task.images.map((image) => image.sampler))].join(
+                        "**, **",
+                    );
+                    const steps = [...new Set(task.images.map((image) => image.steps))].join(
+                        "**, **",
+                    );
+                    const cfgs = [...new Set(task.images.map((image) => image.cfg))].join("**, **");
 
                     const message = {
                         content: [
-                            `> **Prompt**: \`${task.prompt.replace(/[`\\]/g, "")}\``,
+                            `> **Prompt**: \`${task.images[0].prompt.replace(/[`\\]/g, "")}\``,
                             `> **Negative Prompt**: ${
-                                task.negative
-                                    ? "`" + task.negative.replace(/[`\\]/g, "") + "`"
+                                task.images[0].negative
+                                    ? "`" + task.images[0].negative.replace(/[`\\]/g, "") + "`"
                                     : "None"
                             }`,
-                            `> \`${task.seed}\` | **${task.model}** model, **${task.sampler}** sampler, **${task.steps}** steps, **${task.cfg}** scale`,
+                            `> \`${seeds}\` | **${models}** model, **${samplers}** sampler, **${steps}** steps, **${cfgs}** scale`,
                             `Suggested by: <@${task.issued_by}>`,
                             `Approved by: <@${task.approved_by}>`,
                         ].join("\n"),
                         files: images.map((image, i) => ({
                             attachment: image,
-                            name: `${nsfw ? "SPOILER_" : ""}${task.seed + i}.png`,
+                            name: `${nsfw ? "SPOILER_" : ""}${task.images[0].seed}.png`,
                         })),
                         components: [],
                     };
@@ -286,10 +405,13 @@ export class NAI extends BaseModule implements Module {
                         await task.interaction.channel?.send(message);
                     }
 
+                    retried_count = 999;
                     queue.shift();
-                    if (queue.length) {
-                        this.draw(token);
-                    }
+                    setTimeout(() => {
+                        if (queue.length) {
+                            this.draw(token);
+                        }
+                    }, 500);
                 }
             } catch (err) {
                 console.log(err);
@@ -308,7 +430,7 @@ export class NAI extends BaseModule implements Module {
     }
 }
 
-interface Task {
+interface Image {
     prompt: string;
     negative: string;
     shape: "portrait" | "landscape" | "square";
@@ -317,9 +439,12 @@ interface Task {
     cfg: number;
     steps: number;
     seed: number;
+}
+
+interface Task {
+    images: Image[];
     issued_by: string;
     approved_by?: string;
-    batch: number;
     interaction: CommandInteraction;
     reply?: InteractionResponse;
 }

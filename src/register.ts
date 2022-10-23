@@ -93,6 +93,64 @@ const commands = [
                 .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
                 .setRequired(false),
         ),
+    new SlashCommandBuilder()
+        .setName("series")
+        .setDescription("Generate a series of images for expirimentation")
+        .addStringOption((option) =>
+            option.setName("prompt").setDescription("The prompt for the image").setRequired(true),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("type")
+                .setDescription("The type of series to generate")
+                .addChoices(
+                    ...["shape", "sampler", "cfg", "steps"].map((name) => ({ name, value: name })),
+                )
+                .setRequired(true),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("negative")
+                .setDescription("The negative prompt for the image")
+                .setRequired(false),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("model")
+                .setDescription('The model to use, default is "safe"')
+                .addChoices(...Object.keys(model).map((name) => ({ name, value: name })))
+                .setRequired(false),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("shape")
+                .setDescription("The shape of the image")
+                .addChoices(
+                    { name: "Portrait", value: "portrait" },
+                    { name: "Landscape", value: "landscape" },
+                    { name: "Square", value: "square" },
+                )
+                .setRequired(false),
+        )
+        .addStringOption((option) =>
+            option
+                .setName("sampler")
+                .setDescription("The sampler to use")
+                .addChoices(...Object.values(sampler).map((name) => ({ name, value: name })))
+                .setRequired(false),
+        )
+        .addNumberOption((option) =>
+            option
+                .setName("cfg")
+                .setDescription("The CFG scale value to use (1.1 ~ 100)")
+                .setRequired(false),
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("steps")
+                .setDescription("The number of steps to use (1 ~ 28)")
+                .setRequired(false),
+        ),
 ].map((command) => command.toJSON());
 
 config();

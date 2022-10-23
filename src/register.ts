@@ -59,6 +59,12 @@ const commands = [
                 .setName("cfg")
                 .setDescription("The CFG scale value to use (1.1 ~ 100), default is 11")
                 .setRequired(false),
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("steps")
+                .setDescription("The number of steps to use (1 ~ 28), default is 28")
+                .setRequired(false),
         ),
     new SlashCommandBuilder()
         .setName("random")

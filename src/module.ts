@@ -8,6 +8,7 @@ import {
     CommandInteraction,
     GatewayIntentBits,
     TextChannel,
+    InteractionResponse,
 } from "discord.js";
 import { random_prompt } from "./random";
 
@@ -185,10 +186,10 @@ export class NAI extends BaseModule implements Module {
         if (token) {
             interaction.reply({ content: ":paintbrush: Generating ..." });
             task.approved_by = interaction.user.id;
-            this.queue(token, task as Task);
+            this.queue(token, task);
         } else {
             const task_id = Math.random().toString(36).slice(2);
-            this.tasks.set(task_id, task as Task);
+            this.tasks.set(task_id, task);
 
             const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
                 new ButtonBuilder()
@@ -197,7 +198,7 @@ export class NAI extends BaseModule implements Module {
                     .setStyle(ButtonStyle.Primary),
             );
 
-            await interaction.reply({
+            task.reply = await interaction.reply({
                 content: [
                     `:yellow_circle: A task is pending for approval.`,
                     `> **Prompt**: \`${task.prompt}\``,
@@ -272,9 +273,11 @@ export class NAI extends BaseModule implements Module {
 
                 if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
                     await task.interaction.editReply(message);
+                } else if (task.reply) {
+                    const reply = await task.interaction.channel?.messages.fetch(task.reply.id);
+                    await reply?.reply(message);
                 } else {
-                    const reply = await task.interaction.fetchReply();
-                    await reply.reply(message);
+                    await task.interaction.channel?.send(message);
                 }
 
                 queue.shift();
@@ -288,8 +291,7 @@ export class NAI extends BaseModule implements Module {
                 if (Date.now() - interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
                     await interaction.editReply(":x: " + err.message);
                 } else {
-                    const reply = await interaction.fetchReply();
-                    await reply.reply(":x: " + err.message);
+                    await interaction.channel?.send(":x: " + err.message);
                 }
             }
         }
@@ -307,6 +309,7 @@ interface Task {
     seed: number;
     issued_by: string;
     approved_by?: string;
-    interaction: CommandInteraction;
     batch: number;
+    interaction: CommandInteraction;
+    reply?: InteractionResponse;
 }

@@ -30,6 +30,8 @@ The bot will smartly queue up your requests and will not spam the API.
 
 `/random [shape] [smapler] [model]`: Generate a random image.
 
+`/series <prompt> <type> [negative] [shape] [smapler] [model]`: Generate a series of images from the prompt.
+
 ## Screenshots
 
 ![Not a subscriber](screenshots/not-a-subscriber.png)

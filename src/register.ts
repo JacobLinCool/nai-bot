@@ -17,6 +17,7 @@ const commands = [
     new SlashCommandBuilder()
         .setName("revoke")
         .setDescription("Revoke the previously stored token"),
+    new SlashCommandBuilder().setName("me").setDescription("Get information about your token"),
     new SlashCommandBuilder()
         .setName("generate")
         .setDescription("Generate an image")

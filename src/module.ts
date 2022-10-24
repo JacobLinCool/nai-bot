@@ -62,7 +62,33 @@ export class NAI extends BaseModule implements Module {
                     } else {
                         interaction.reply({
                             ephemeral: true,
-                            content: ":x: You have not authorized",
+                            content: ":x: There is no token to revoke",
+                        });
+                    }
+                    break;
+                }
+                case "me": {
+                    const data = await ctx.user<{ "nai-token"?: string }>();
+                    if (data && data["nai-token"]) {
+                        const nai = new NovelAI(data["nai-token"]);
+                        const whoami = await nai.whoami();
+                        interaction.reply({
+                            ephemeral: true,
+                            content: [
+                                `Expires at **${new Date(whoami.expiresAt * 1000).toLocaleString(
+                                    "en-US",
+                                )}**`,
+                                `Subscription: **${
+                                    ["Paper", "Tablet", "Scroll", "Opus"][whoami.tier]
+                                }**`,
+                                `Anlas: **${whoami.trainingStepsLeft.fixedTrainingStepsLeft}** + **${whoami.trainingStepsLeft.purchasedTrainingSteps}**`,
+                                `Unlimited normal size image generation: **${whoami.perks.unlimitedImageGeneration}**`,
+                            ].join("\n"),
+                        });
+                    } else {
+                        interaction.reply({
+                            ephemeral: true,
+                            content: ":x: There is no token on your account",
                         });
                     }
                     break;

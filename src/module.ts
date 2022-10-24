@@ -343,24 +343,6 @@ export class NAI extends BaseModule implements Module {
                     const nai = new NovelAI(token);
                     interaction = task.interaction;
 
-                    const images: Buffer[] = [];
-                    for (let i = 0; i < task.images.length; i++) {
-                        const image = await nai.image(
-                            task.images[i].prompt,
-                            task.images[i].negative,
-                            {
-                                ...resolution.normal[task.images[i].shape],
-                                sampler: task.images[i].sampler,
-                                model: MODEL[task.images[i].model],
-                                scale: task.images[i].cfg,
-                                steps: task.images[i].steps,
-                                seed: task.images[i].seed,
-                            },
-                        );
-                        images.push(image);
-                        await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
-                    }
-
                     const nsfw =
                         task.images[0].model !== "safe" ||
                         task.images[0].prompt.toLowerCase().includes("nsfw");
@@ -377,6 +359,15 @@ export class NAI extends BaseModule implements Module {
                     );
                     const cfgs = [...new Set(task.images.map((image) => image.cfg))].join("**, **");
 
+                    const files: { name: string; attachment: string | Buffer }[] = task.images.map(
+                        (image, i) => ({
+                            name: `${nsfw ? "SPOILER_" : ""}${image.seed}_${i}.png`,
+                            attachment: `https://via.placeholder.com/${
+                                resolution.normal[image.shape].width
+                            }x${resolution.normal[image.shape].height}.png?text=${placeholder()}`,
+                        }),
+                    );
+
                     const message = {
                         content: [
                             `> **Prompt**: \`${task.images[0].prompt.replace(/[`\\]/g, "")}\``,
@@ -389,20 +380,66 @@ export class NAI extends BaseModule implements Module {
                             `Suggested by: <@${task.issued_by}>`,
                             `Approved by: <@${task.approved_by}>`,
                         ].join("\n"),
-                        files: images.map((image, i) => ({
-                            attachment: image,
-                            name: `${nsfw ? "SPOILER_" : ""}${task.images[i].seed}.png`,
-                        })),
+                        files,
                         components: [],
                     };
 
                     if (Date.now() - task.interaction.createdTimestamp < (14 * 60 + 30) * 1000) {
                         await task.interaction.editReply(message);
-                    } else if (task.reply) {
-                        const reply = await task.interaction.channel?.messages.fetch(task.reply.id);
-                        await reply?.reply(message);
-                    } else {
-                        await task.interaction.channel?.send(message);
+                    }
+
+                    for (let i = 0; i < task.images.length; i++) {
+                        while (retried_count < 3) {
+                            try {
+                                const image = await nai.image(
+                                    task.images[i].prompt,
+                                    task.images[i].negative,
+                                    {
+                                        ...resolution.normal[task.images[i].shape],
+                                        sampler: task.images[i].sampler,
+                                        model: MODEL[task.images[i].model],
+                                        scale: task.images[i].cfg,
+                                        steps: task.images[i].steps,
+                                        seed: task.images[i].seed,
+                                    },
+                                );
+
+                                files[i].attachment = image;
+
+                                if (
+                                    Date.now() - task.interaction.createdTimestamp <
+                                    (14 * 60 + 30) * 1000
+                                ) {
+                                    const msg = await task.interaction.editReply(message);
+                                    const sent = msg.attachments.find(
+                                        (item) => item.name === files[i].name,
+                                    );
+                                    if (sent) {
+                                        files[i].attachment = sent.url;
+                                    }
+                                } else if (i === task.images.length - 1) {
+                                    if (task.reply) {
+                                        const reply =
+                                            await task.interaction.channel?.messages.fetch(
+                                                task.reply.id,
+                                            );
+                                        await reply?.reply(message);
+                                    } else {
+                                        await task.interaction.channel?.send(message);
+                                    }
+                                }
+
+                                break;
+                            } catch (err) {
+                                console.log(err);
+                                retried_count++;
+                                if (retried_count >= 3) {
+                                    throw err;
+                                }
+                            }
+                        }
+
+                        await new Promise((resolve) => setTimeout(resolve, i ? 500 : 0));
                     }
 
                     retried_count = 999;
@@ -428,6 +465,28 @@ export class NAI extends BaseModule implements Module {
             }
         }
     }
+}
+
+function placeholder(): string {
+    const placeholders: [number, string][] = [
+        [0.8, "..."],
+        [0.05, "%27-%27"],
+        [0.05, "*.*"],
+        [0.05, "%27w%27"],
+        [0.05, "%27o%27"],
+    ];
+
+    const rand = Math.random();
+    let sum = 0;
+
+    for (const [prob, placeholder] of placeholders) {
+        sum += prob;
+        if (rand < sum) {
+            return placeholder;
+        }
+    }
+
+    return placeholders[placeholders.length - 1][1];
 }
 
 interface Image {
